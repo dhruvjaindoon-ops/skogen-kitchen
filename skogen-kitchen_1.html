@@ -1,0 +1,990 @@
+<!--
+  SKOGEN KITCHEN — Luxury redesign concept (single-file demo)
+  Concept: "Skogen" = the forest (Norwegian/Swedish). The page is organized as a
+  forest trail that draws itself as you scroll, tracing the owners' path from
+  Southern California to Custer, SD. All factual content (name, story, menu,
+  prices, hours, contact) is preserved from skogenkitchen.com & its published menu.
+  Photography is represented with crafted compositions — replace .photo blocks
+  with the client's real images (drop a URL into --img on each .photo).
+-->
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Skogen Kitchen — Chef-Driven Dining in the Black Hills · Custer, SD</title>
+<meta name="description" content="Skogen Kitchen, a chef-driven restaurant in Custer, South Dakota. Global flavors, local ingredients, and a James Beard–recognized kitchen in the heart of the Black Hills." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    --paper:#F4EEE1;        /* warm ivory */
+    --paper-2:#FBF6EC;      /* lighter ivory */
+    --ink:#1B1D18;          /* charcoal w/ green undertone */
+    --ink-soft:#3a3e35;
+    --forest:#26331F;       /* deep forest */
+    --forest-2:#34502F;     /* mid forest */
+    --moss:#3F7C3B;         /* living brand green */
+    --gold:#B5904E;         /* champagne gold */
+    --gold-2:#D8BC84;       /* light gold */
+    --wood:#C9B591;         /* natural wood / beige */
+    --line:rgba(27,29,24,.16);
+    --maxw:1180px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Inter",system-ui,sans-serif;
+    font-weight:400;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  body.locked{overflow:hidden}
+  h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;font-weight:400;line-height:1.04;letter-spacing:-.01em}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+  ::selection{background:var(--moss);color:var(--paper-2)}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  .eyebrow{
+    font-size:.72rem;font-weight:500;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--gold);display:inline-flex;align-items:center;gap:.7em;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--gold);opacity:.7}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    --bg:var(--ink);--fg:var(--paper-2);
+    position:relative;display:inline-flex;align-items:center;gap:.6em;
+    padding:15px 30px;border:1px solid var(--bg);background:var(--bg);color:var(--fg);
+    font-size:.74rem;letter-spacing:.22em;text-transform:uppercase;font-weight:500;
+    border-radius:999px;cursor:pointer;overflow:hidden;
+    transition:transform .5s var(--ease),box-shadow .5s var(--ease),color .5s var(--ease);
+  }
+  .btn span{position:relative;z-index:1}
+  .btn::after{
+    content:"";position:absolute;inset:0;background:var(--gold);
+    transform:translateY(101%);transition:transform .5s var(--ease);z-index:0;
+  }
+  .btn:hover{transform:translateY(-3px);box-shadow:0 14px 30px -12px rgba(27,29,24,.5);color:var(--ink)}
+  .btn:hover::after{transform:translateY(0)}
+  .btn.ghost{--bg:transparent;--fg:var(--ink);border-color:var(--line)}
+  .btn.ghost:hover{color:var(--ink)}
+  .btn.light{--bg:transparent;--fg:var(--paper-2);border-color:rgba(244,238,225,.35)}
+  .btn.light:hover{color:var(--ink)}
+  .btn:focus-visible{outline:2px solid var(--moss);outline-offset:3px}
+
+  /* ---------- loading screen ---------- */
+  #loader{
+    position:fixed;inset:0;z-index:1000;background:var(--forest);
+    display:grid;place-items:center;transition:opacity 1s var(--ease),visibility 1s;
+  }
+  #loader.done{opacity:0;visibility:hidden}
+  .loader-inner{text-align:center;color:var(--paper-2)}
+  .loader-mark{font-family:"Fraunces";font-size:clamp(2.2rem,7vw,3.6rem);letter-spacing:.04em;
+    opacity:0;transform:translateY(14px);animation:fadeUp 1.2s var(--ease) .15s forwards}
+  .loader-sub{font-size:.7rem;letter-spacing:.42em;text-transform:uppercase;color:var(--gold-2);
+    margin-top:14px;opacity:0;animation:fadeUp 1.2s var(--ease) .5s forwards}
+  .loader-bar{width:140px;height:1px;background:rgba(244,238,225,.2);margin:26px auto 0;overflow:hidden}
+  .loader-bar i{display:block;height:100%;width:100%;background:var(--gold-2);transform:translateX(-100%);
+    animation:load 1.8s var(--ease) .3s forwards}
+  @keyframes fadeUp{to{opacity:1;transform:none}}
+  @keyframes load{to{transform:translateX(0)}}
+
+  /* ---------- nav ---------- */
+  header{position:fixed;top:0;left:0;right:0;z-index:90;transition:all .5s var(--ease)}
+  .nav{
+    display:flex;align-items:center;justify-content:space-between;
+    margin:16px auto;max-width:calc(var(--maxw) + 40px);
+    padding:14px 26px;border-radius:999px;
+    transition:all .5s var(--ease);
+  }
+  header.scrolled .nav{
+    background:rgba(244,238,225,.72);backdrop-filter:blur(16px) saturate(140%);
+    -webkit-backdrop-filter:blur(16px) saturate(140%);
+    box-shadow:0 10px 40px -22px rgba(27,29,24,.5);border:1px solid rgba(255,255,255,.4);
+    margin-top:10px;
+  }
+  .brand{font-family:"Fraunces";font-size:1.35rem;letter-spacing:.06em;color:var(--paper-2);transition:color .5s}
+  .brand b{font-weight:400}
+  header.scrolled .brand{color:var(--ink)}
+  .nav-links{display:flex;gap:30px;align-items:center}
+  .nav-links a{
+    font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;color:var(--paper-2);
+    position:relative;padding:4px 0;transition:color .4s;
+  }
+  header.scrolled .nav-links a{color:var(--ink-soft)}
+  .nav-links a::after{content:"";position:absolute;left:0;bottom:0;height:1px;width:0;background:var(--gold);transition:width .4s var(--ease)}
+  .nav-links a:hover{color:var(--gold)}
+  .nav-links a:hover::after{width:100%}
+  .nav-cta{padding:11px 22px;font-size:.68rem;border:1px solid rgba(244,238,225,.4);border-radius:999px;
+    color:var(--paper-2);letter-spacing:.18em;text-transform:uppercase;transition:all .4s var(--ease)}
+  header.scrolled .nav-cta{border-color:var(--ink);color:var(--ink)}
+  .nav-cta:hover{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+  .burger{display:none;flex-direction:column;gap:5px;background:none;border:0;cursor:pointer;padding:8px}
+  .burger span{width:24px;height:1.5px;background:var(--paper-2);transition:all .4s}
+  header.scrolled .burger span{background:var(--ink)}
+
+  /* mobile drawer */
+  .drawer{position:fixed;inset:0;z-index:95;background:var(--forest);display:flex;flex-direction:column;
+    justify-content:center;align-items:center;gap:6px;transform:translateY(-100%);transition:transform .6s var(--ease)}
+  .drawer.open{transform:none}
+  .drawer a{font-family:"Fraunces";font-size:2rem;color:var(--paper-2);padding:8px 0;opacity:.9}
+  .drawer a:hover{color:var(--gold-2)}
+  .drawer .close{position:absolute;top:26px;right:26px;font-size:2rem;color:var(--paper-2);background:none;border:0;cursor:pointer}
+
+  /* ---------- the forest trail (signature) ---------- */
+  .trail{position:fixed;left:50%;top:0;bottom:0;width:1px;z-index:1;pointer-events:none;
+    background:linear-gradient(var(--line),var(--line));transform:translateX(-50%);opacity:.5}
+  .trail i{position:absolute;left:0;top:0;width:100%;background:linear-gradient(var(--gold),var(--moss));
+    height:0;transition:height .1s linear}
+  @media(max-width:900px){.trail{display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;min-height:100vh;display:flex;align-items:center;color:var(--paper-2);overflow:hidden;
+    background-color:#141a0f;
+    background-image:linear-gradient(120deg,rgba(20,26,15,.55),rgba(20,26,15,.12)),
+      url("https://images.squarespace-cdn.com/content/v1/64094b859bda7e5d350d2e7b/c50e3db1-154b-4620-814b-e8c6ac253f79/IMG_8575.jpg?format=2500w");
+    background-size:cover;background-position:center;background-repeat:no-repeat}
+  .hero canvas{position:absolute;inset:0;z-index:0;opacity:.5}
+  .hero .grain{position:absolute;inset:0;z-index:1;opacity:.5;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E")}
+  .hero::after{content:"";position:absolute;inset:0;z-index:1;
+    background:linear-gradient(180deg,rgba(15,20,12,.5) 0%,rgba(15,20,12,.15) 40%,rgba(15,20,12,.7) 100%)}
+  .hero-inner{position:relative;z-index:2;width:100%;padding:120px 0 90px}
+  .hero h1{font-size:clamp(2.9rem,8.5vw,6.4rem);font-weight:300;max-width:14ch;margin:22px 0 26px}
+  .hero h1 em{font-style:italic;color:var(--gold-2)}
+  .hero p{max-width:46ch;font-size:1.06rem;color:rgba(244,238,225,.82);font-weight:300}
+  .hero-actions{display:flex;gap:14px;margin-top:38px;flex-wrap:wrap}
+  .scroll-cue{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:2;
+    display:flex;flex-direction:column;align-items:center;gap:10px;color:rgba(244,238,225,.6)}
+  .scroll-cue span{font-size:.62rem;letter-spacing:.32em;text-transform:uppercase}
+  .scroll-cue i{width:1px;height:46px;background:linear-gradient(rgba(244,238,225,.6),transparent);position:relative;overflow:hidden}
+  .scroll-cue i::after{content:"";position:absolute;top:0;left:0;width:100%;height:40%;background:var(--gold-2);animation:drop 2.2s var(--ease) infinite}
+  @keyframes drop{0%{transform:translateY(-100%)}100%{transform:translateY(280%)}}
+
+  /* ---------- reveal util ---------- */
+  .reveal{opacity:0;transform:translateY(34px);filter:blur(6px);
+    transition:opacity 1s var(--ease),transform 1s var(--ease),filter 1s var(--ease)}
+  .reveal.in{opacity:1;transform:none;filter:none}
+  .reveal.d1{transition-delay:.12s}.reveal.d2{transition-delay:.24s}.reveal.d3{transition-delay:.36s}
+
+  section{position:relative;z-index:2}
+  .pad{padding:clamp(80px,12vw,160px) 0}
+  .lede{font-size:clamp(1.9rem,4.4vw,3.4rem);font-weight:300;line-height:1.18;max-width:20ch}
+  .muted{color:var(--ink-soft)}
+
+  /* ---------- philosophy ---------- */
+  .philosophy{background:var(--paper-2)}
+  .phil-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+  .phil-grid .big{font-size:clamp(2.2rem,5vw,4rem);font-weight:300;line-height:1.1}
+  .phil-grid .big em{font-style:italic;color:var(--moss)}
+  .phil-copy p{margin-top:20px;max-width:48ch}
+  .stat-row{display:flex;gap:46px;margin-top:42px;flex-wrap:wrap}
+  .stat b{font-family:"Fraunces";font-size:2.4rem;display:block;color:var(--forest-2);font-weight:400}
+  .stat span{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+  .seals{display:flex;gap:22px;align-items:center;margin-top:36px}
+  .seals img{height:84px;width:auto;opacity:.92;filter:saturate(.9)}
+
+  /* ---------- chef ---------- */
+  .chef{background:var(--forest);color:var(--paper-2)}
+  .chef-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:64px;align-items:center}
+  .chef .photo{aspect-ratio:4/5}
+  .chef h2{font-size:clamp(2.2rem,4.6vw,3.6rem);font-weight:300;margin:18px 0 22px}
+  .chef p{color:rgba(244,238,225,.8);max-width:50ch;margin-bottom:18px;font-weight:300}
+  .chef .eyebrow{color:var(--gold-2)}
+  .chef .eyebrow::before{background:var(--gold-2)}
+  .sig{font-family:"Fraunces";font-style:italic;font-size:2rem;color:var(--gold-2);margin-top:26px}
+  .sig small{display:block;font-family:"Inter";font-style:normal;font-size:.7rem;letter-spacing:.24em;
+    text-transform:uppercase;color:rgba(244,238,225,.6);margin-top:8px}
+
+  /* photo composition (replace with real imagery) */
+  .photo{position:relative;border-radius:4px;overflow:hidden;
+    background:
+      linear-gradient(135deg,rgba(0,0,0,.35),rgba(0,0,0,0)),
+      var(--img,linear-gradient(160deg,#3c5238,#26331f 60%,#5a4a32));
+    background-size:cover;background-position:center;
+    box-shadow:0 40px 80px -40px rgba(0,0,0,.55)}
+  .photo::after{content:attr(data-cap);position:absolute;left:16px;bottom:14px;
+    font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:rgba(244,238,225,.7)}
+  .photo .grainy{position:absolute;inset:0;opacity:.18;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  /* ---------- experience cards ---------- */
+  .exp{background:var(--paper)}
+  .exp-head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap;margin-bottom:54px}
+  .exp-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+  .exp-card{background:var(--paper);padding:34px 26px 40px;transition:background .5s var(--ease)}
+  .exp-card .n{font-family:"Fraunces";font-size:.9rem;color:var(--gold);font-style:italic}
+  .exp-card h3{font-size:1.5rem;margin:30px 0 12px;font-weight:400}
+  .exp-card p{font-size:.92rem;color:var(--ink-soft)}
+  .exp-card:hover{background:var(--paper-2)}
+  @media(max-width:900px){.exp-cards{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.exp-cards{grid-template-columns:1fr}}
+
+  /* ---------- menu ---------- */
+  .menu{background:var(--paper-2)}
+  .menu-head{text-align:center;max-width:60ch;margin:0 auto 18px}
+  .menu-head h2{font-size:clamp(2.4rem,5.4vw,4.2rem);font-weight:300}
+  .menu-note{text-align:center;font-size:.78rem;letter-spacing:.04em;color:var(--gold);margin-bottom:40px}
+  .filters{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:56px}
+  .filters button{
+    border:1px solid var(--line);background:transparent;color:var(--ink-soft);
+    padding:10px 20px;border-radius:999px;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+    cursor:pointer;transition:all .4s var(--ease)}
+  .filters button:hover{border-color:var(--gold)}
+  .filters button.active{background:var(--forest);color:var(--paper-2);border-color:var(--forest)}
+  .menu-cat{margin-bottom:64px}
+  .menu-cat>h3{font-family:"Fraunces";font-size:1.7rem;font-weight:400;color:var(--forest-2);
+    display:flex;align-items:center;gap:18px;margin-bottom:30px}
+  .menu-cat>h3::after{content:"";flex:1;height:1px;background:var(--line)}
+  .dish{display:grid;grid-template-columns:1fr auto;gap:8px 24px;align-items:baseline;
+    padding:18px 0;border-bottom:1px dotted var(--line);transition:padding-left .4s var(--ease)}
+  .dish:hover{padding-left:10px}
+  .dish .nm{font-family:"Fraunces";font-size:1.18rem;font-weight:400}
+  .dish .pr{font-family:"Fraunces";font-size:1.1rem;color:var(--gold);white-space:nowrap}
+  .dish .ds{grid-column:1/-1;font-size:.88rem;color:var(--ink-soft);max-width:62ch;font-weight:300}
+  .dish.glass{grid-template-columns:1fr auto auto;gap:8px 18px}
+  .dish .pr2{font-family:"Fraunces";color:var(--ink-soft);font-size:1rem;white-space:nowrap}
+
+  details.cellar{border:1px solid var(--line);border-radius:6px;margin-bottom:14px;background:var(--paper);overflow:hidden}
+  details.cellar>summary{list-style:none;cursor:pointer;padding:22px 26px;display:flex;justify-content:space-between;
+    align-items:center;font-family:"Fraunces";font-size:1.3rem;color:var(--forest-2)}
+  details.cellar>summary::-webkit-details-marker{display:none}
+  details.cellar>summary .plus{color:var(--gold);font-size:1.4rem;transition:transform .4s}
+  details.cellar[open]>summary .plus{transform:rotate(45deg)}
+  .cellar-body{padding:6px 26px 24px}
+  .legend{font-size:.74rem;color:var(--ink-soft);margin-top:26px;line-height:1.9;max-width:70ch}
+
+  /* ---------- featured ---------- */
+  .featured{background:var(--paper)}
+  .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .feat-card{position:relative;background:var(--paper-2);border:1px solid var(--line);border-radius:6px;
+    padding:42px 34px 38px;overflow:hidden;transition:transform .5s var(--ease),box-shadow .5s var(--ease)}
+  .feat-card::before{content:"";position:absolute;left:0;top:0;height:3px;width:0;background:var(--gold);transition:width .6s var(--ease)}
+  .feat-card:hover{transform:translateY(-6px);box-shadow:0 30px 60px -38px rgba(27,29,24,.4)}
+  .feat-card:hover::before{width:100%}
+  .feat-card .fk{font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+  .feat-card h4{font-family:"Fraunces";font-size:1.9rem;font-weight:400;margin:18px 0 14px;color:var(--forest-2)}
+  .feat-card p{font-size:.9rem;color:var(--ink-soft);font-weight:300}
+  @media(max-width:760px){.feat-grid{grid-template-columns:1fr}}
+
+  /* ---------- gallery ---------- */
+  .gallery{background:var(--forest);color:var(--paper-2)}
+  .gal-grid{display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:130px;gap:16px}
+  .gal{position:relative;overflow:hidden;border-radius:4px;background:#1b2415;margin:0}
+  .gal img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 1.2s var(--ease)}
+  .gal:hover img{transform:scale(1.05)}
+  .gal::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(transparent 50%,rgba(15,20,12,.6))}
+  .gal .gcap{position:absolute;left:16px;bottom:14px;z-index:2;font-size:.62rem;letter-spacing:.22em;
+    text-transform:uppercase;color:rgba(244,238,225,.9);text-shadow:0 1px 10px rgba(0,0,0,.7)}
+  .g1{grid-column:1/4;grid-row:1/4}
+  .g2{grid-column:4/7;grid-row:1/3}
+  .g3{grid-column:4/7;grid-row:3/5}
+  .g4{grid-column:1/4;grid-row:4/5}
+  @media(max-width:760px){
+    .gal-grid{grid-template-columns:1fr 1fr;grid-auto-rows:150px;gap:12px}
+    .g1{grid-column:1/3;grid-row:span 2}
+    .g2{grid-column:1/2;grid-row:span 2}
+    .g3{grid-column:2/3;grid-row:span 2}
+    .g4{grid-column:1/3;grid-row:span 1}
+  }
+  @media(max-width:460px){
+    .gal-grid{grid-template-columns:1fr;grid-auto-rows:220px}
+    .g1,.g2,.g3,.g4{grid-column:1/-1;grid-row:span 1}
+  }
+
+  /* ---------- reservation ---------- */
+  .reserve{background:var(--paper-2)}
+  .res-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:stretch}
+  .res-card{background:var(--forest);color:var(--paper-2);padding:46px;border-radius:8px;
+    box-shadow:0 50px 90px -50px rgba(0,0,0,.6)}
+  .res-card h3{font-size:2rem;font-weight:300;margin-bottom:6px}
+  .res-card .eyebrow{color:var(--gold-2)}.res-card .eyebrow::before{background:var(--gold-2)}
+  .field{margin-top:20px}
+  .field label{display:block;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;
+    color:rgba(244,238,225,.6);margin-bottom:8px}
+  .field input,.field select{width:100%;background:transparent;border:0;border-bottom:1px solid rgba(244,238,225,.28);
+    color:var(--paper-2);padding:10px 2px;font-family:"Inter";font-size:.96rem;transition:border-color .4s}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--gold-2)}
+  .field select option{color:var(--ink)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .res-info h4{font-family:"Fraunces";font-size:1.4rem;font-weight:400;margin-bottom:6px;color:var(--forest-2)}
+  .res-info .block{padding:26px 0;border-bottom:1px solid var(--line)}
+  .res-info .block p{color:var(--ink-soft);font-size:.95rem}
+  .res-info .block a{color:var(--moss)}
+  .res-msg{font-size:.82rem;color:var(--gold-2);margin-top:14px;min-height:1.2em}
+
+  /* ---------- location ---------- */
+  .location{background:var(--paper)}
+  .loc-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:50px;align-items:center}
+  .map-frame{border-radius:8px;overflow:hidden;border:1px solid var(--line);box-shadow:0 40px 80px -50px rgba(0,0,0,.4);
+    filter:grayscale(.3) sepia(.12) contrast(.96)}
+  .map-frame iframe{width:100%;height:420px;border:0;display:block}
+
+  /* ---------- reviews ---------- */
+  .reviews{background:var(--paper-2)}
+  .rev-track{display:flex;gap:24px;overflow-x:auto;padding-bottom:20px;scroll-snap-type:x mandatory;scrollbar-width:none}
+  .rev-track::-webkit-scrollbar{display:none}
+  .rev{scroll-snap-align:start;min-width:min(420px,82vw);background:rgba(255,255,255,.5);
+    border:1px solid rgba(255,255,255,.7);backdrop-filter:blur(8px);border-radius:10px;padding:36px;
+    box-shadow:0 30px 60px -40px rgba(27,29,24,.35)}
+  .rev .stars{color:var(--gold);letter-spacing:3px;margin-bottom:18px}
+  .rev p{font-family:"Fraunces";font-size:1.25rem;font-weight:300;line-height:1.4;font-style:italic}
+  .rev cite{display:block;margin-top:22px;font-style:normal;font-size:.72rem;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--ink-soft)}
+
+  /* ---------- final cta ---------- */
+  .final{position:relative;color:var(--paper-2);text-align:center;
+    background:radial-gradient(110% 120% at 50% 0%,#3a5236,#26331f 50%,#141a0f)}
+  .final .grain{position:absolute;inset:0;opacity:.4;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  .final-inner{position:relative;z-index:2;max-width:30ch;margin:0 auto}
+  .final h2{font-size:clamp(2.6rem,6vw,5rem);font-weight:300;margin:18px 0 26px}
+  .final h2 em{font-style:italic;color:var(--gold-2)}
+
+  /* ---------- footer ---------- */
+  footer{background:var(--ink);color:rgba(244,238,225,.72)}
+  .foot{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.4fr;gap:50px;padding:80px 0 40px}
+  .foot .brand{color:var(--paper-2);font-size:1.8rem}
+  .foot p{font-size:.9rem;margin-top:16px;max-width:34ch}
+  .foot h5{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-2);margin-bottom:18px}
+  .foot ul{list-style:none}
+  .foot li{margin-bottom:11px;font-size:.92rem}
+  .foot a:hover{color:var(--gold-2)}
+  .news{display:flex;border-bottom:1px solid rgba(244,238,225,.25);margin-top:14px}
+  .news input{flex:1;background:none;border:0;color:var(--paper-2);padding:10px 0;font-family:"Inter"}
+  .news input:focus{outline:none}
+  .news button{background:none;border:0;color:var(--gold-2);cursor:pointer;letter-spacing:.16em;
+    text-transform:uppercase;font-size:.7rem}
+  .news-msg{font-size:.75rem;color:var(--gold-2);margin-top:10px;min-height:1em}
+  .foot-base{border-top:1px solid rgba(244,238,225,.12);padding:22px 0;display:flex;
+    justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:.78rem}
+  .foot-base a:hover{color:var(--gold-2)}
+
+  @media(max-width:900px){
+    .nav-links{display:none}.burger{display:flex}
+    .phil-grid,.chef-grid,.res-grid,.loc-grid{grid-template-columns:1fr;gap:40px}
+    .feat-grid{grid-template-columns:1fr}
+    .foot{grid-template-columns:1fr 1fr;gap:36px}
+    .two{grid-template-columns:1fr}
+  }
+  @media(max-width:560px){.foot{grid-template-columns:1fr}.exp-head{flex-direction:column;align-items:flex-start}}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;scroll-behavior:auto!important}
+    .reveal{opacity:1;transform:none;filter:none}
+  }
+</style>
+
+<!-- ===================== LOADER ===================== -->
+<div id="loader" aria-hidden="true">
+  <div class="loader-inner">
+    <div class="loader-mark">Skogen<span style="color:var(--gold-2)">.</span></div>
+    <div class="loader-sub">Custer · South Dakota</div>
+    <div class="loader-bar"><i></i></div>
+  </div>
+</div>
+
+<div class="trail" aria-hidden="true"><i id="trailFill"></i></div>
+
+<!-- ===================== NAV ===================== -->
+<header id="header">
+  <nav class="wrap nav">
+    <a href="#top" class="brand"><b>Skogen</b> Kitchen</a>
+    <div class="nav-links">
+      <a href="#philosophy">Story</a>
+      <a href="#chef">Chef</a>
+      <a href="#menu">Menu</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#location">Visit</a>
+      <a href="#reserve" class="nav-cta">Reserve</a>
+    </div>
+    <button class="burger" id="burger" aria-label="Open menu"><span></span><span></span><span></span></button>
+  </nav>
+</header>
+
+<div class="drawer" id="drawer">
+  <button class="close" id="closeDrawer" aria-label="Close menu">&times;</button>
+  <a href="#philosophy">Story</a>
+  <a href="#chef">Chef</a>
+  <a href="#menu">Menu</a>
+  <a href="#gallery">Gallery</a>
+  <a href="#location">Visit</a>
+  <a href="#reserve">Reserve</a>
+</div>
+
+<!-- ===================== HERO ===================== -->
+<section class="hero" id="top">
+  <canvas id="particles"></canvas>
+  <div class="grain"></div>
+  <div class="wrap hero-inner">
+    <span class="eyebrow" style="color:var(--gold-2)">James Beard Award Semifinalist · ’23 & ’25</span>
+    <h1>A clearing in the <em>Black Hills</em>, set for dinner.</h1>
+    <p>Skogen — Norwegian for <em style="font-style:italic;color:var(--gold-2)">the forest</em> — is a chef-driven kitchen in little Custer, South Dakota, plating flavors gathered from around the world on ingredients grown close to home.</p>
+    <div class="hero-actions">
+      <a href="#reserve" class="btn"><span>Reserve a table</span></a>
+      <a href="#menu" class="btn light"><span>Explore the menu</span></a>
+    </div>
+  </div>
+  <div class="scroll-cue"><span>Enter the forest</span><i></i></div>
+</section>
+
+<!-- ===================== PHILOSOPHY ===================== -->
+<section class="philosophy pad" id="philosophy">
+  <div class="wrap phil-grid">
+    <div class="reveal">
+      <span class="eyebrow">Our Philosophy</span>
+      <p class="big" style="margin-top:24px">Two Californians, one small town, and a quiet conviction that <em>great food belongs everywhere</em>.</p>
+    </div>
+    <div class="phil-copy reveal d1">
+      <p class="muted">Joseph and Eliza Raney left Southern California for a town of a few thousand people in the heart of the Black Hills. They came with a simple idea: that the warmth of fine dining shouldn't be reserved for big cities.</p>
+      <p class="muted">Everything begins with what's near — South Dakota growers, ranchers, and the seasons themselves — then travels far, drawing on techniques and flavors collected across a career in kitchens around the world.</p>
+      <div class="stat-row">
+        <div class="stat"><b>2×</b><span>James Beard Semifinalist</span></div>
+        <div class="stat"><b>5</b><span>Nights a week</span></div>
+        <div class="stat"><b>1</b><span>Chef's counter</span></div>
+      </div>
+      <div class="seals reveal d2">
+        <img loading="lazy" alt="James Beard Award Semifinalist 2023"
+          src="https://images.squarespace-cdn.com/content/v1/64094b859bda7e5d350d2e7b/2ad38ba3-6309-486f-8a2f-3f716052ddf4/JBA_SEAL_SEMI_2023_HIRES.png?format=300w" />
+        <img loading="lazy" alt="James Beard Award Semifinalist 2025"
+          src="https://images.squarespace-cdn.com/content/v1/64094b859bda7e5d350d2e7b/d156b08c-21c3-4ce8-920e-88f92fda5bb5/JBA_SEAL_SEMI_2025_HIRES.png?format=300w" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHEF ===================== -->
+<section class="chef pad" id="chef">
+  <div class="wrap chef-grid">
+    <div class="photo reveal" data-cap="Skogen Kitchen · Custer, South Dakota" style="--img:url('https://images.squarespace-cdn.com/content/v1/64094b859bda7e5d350d2e7b/35a2fbf6-45b3-493a-8897-a70c940f1fa7/IMG_7806.jpg?format=1200w')">
+      <div class="grainy"></div>
+    </div>
+    <div class="reveal d1">
+      <span class="eyebrow">The Chef</span>
+      <h2>Cooking the world from a corner of Custer.</h2>
+      <p>Chef Joseph Raney built Skogen around a single counter and an open kitchen, where dinner is less a transaction than a conversation. The menu shifts with what's good — foie gras and huckleberry one night, diver scallops with a Pedro Ximénez "caviar" the next.</p>
+      <p>Alongside GM Eliza Raney, the couple have turned a storefront on 5th Street into one of the region's most talked-about tables — recognized twice as a James Beard Award semifinalist, and still pouring the same warmth into every plate.</p>
+      <div class="sig">— Joseph &amp; Eliza Raney<small>Owners · Skogen Kitchen</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== EXPERIENCE ===================== -->
+<section class="exp pad">
+  <div class="wrap">
+    <div class="exp-head">
+      <div class="reveal">
+        <span class="eyebrow">The Experience</span>
+        <p class="lede" style="margin-top:22px">Five things we never compromise on.</p>
+      </div>
+      <p class="muted reveal d1" style="max-width:34ch">From sourcing to the final pour, the details are the point — quietly obsessed over, rarely announced.</p>
+    </div>
+    <div class="exp-cards reveal">
+      <div class="exp-card"><span class="n">i</span><h3>Craft</h3><p>Classical technique, plated with intent. Every component earns its place.</p></div>
+      <div class="exp-card"><span class="n">ii</span><h3>Seasonality</h3><p>The menu follows the calendar, changing as the Black Hills do.</p></div>
+      <div class="exp-card"><span class="n">iii</span><h3>Hospitality</h3><p>Warm, unhurried service. You're a guest first, a diner second.</p></div>
+      <div class="exp-card"><span class="n">iv</span><h3>Ingredients</h3><p>Fresh, considered, and often surprising — flavors gathered worldwide.</p></div>
+      <div class="exp-card"><span class="n">v</span><h3>Local Sourcing</h3><p>Built on South Dakota growers and ranchers whenever the season allows.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== MENU ===================== -->
+<section class="menu pad" id="menu">
+  <div class="wrap">
+    <div class="menu-head reveal">
+      <span class="eyebrow" style="margin-bottom:18px">The Menu</span>
+      <h2>An evening, course by course.</h2>
+    </div>
+    <p class="menu-note reveal d1">Dinner served Tuesday–Saturday · Menu changes seasonally · $2 split-plate fee · $20 corkage per bottle</p>
+
+    <div class="filters reveal d1">
+      <button class="active" data-f="all">Everything</button>
+      <button data-f="app">Appetizers</button>
+      <button data-f="ent">Entrées</button>
+      <button data-f="lux">Luxury Toppings</button>
+      <button data-f="des">Desserts</button>
+      <button data-f="bev">Wine &amp; Beer</button>
+      <button data-f="kid">Kids</button>
+    </div>
+
+    <!-- APPETIZERS -->
+    <div class="menu-cat reveal" data-cat="app">
+      <h3>Appetizers</h3>
+      <div class="dish"><div class="nm">Soup</div><div class="pr">$12</div><div class="ds">seasonal ingredients</div></div>
+      <div class="dish"><div class="nm">Arugula Salad</div><div class="pr">$16</div><div class="ds">dried cherries · pistachios · manchego cheese · red apple · truffle champagne vinaigrette</div></div>
+      <div class="dish"><div class="nm">Beef Tartare Tacos</div><div class="pr">$18</div><div class="ds">fried gyoza · tarragon aioli · green apple · toasted sesame seeds</div></div>
+      <div class="dish"><div class="nm">Charcuterie</div><div class="pr">$25</div><div class="ds">prosciutto di parma · dijon crema · cornichons · burrata · parmesan reggiano · french baguette</div></div>
+      <div class="dish"><div class="nm">Hiramasa Sashimi</div><div class="pr">$25</div><div class="ds">aji amarillo · fried carrots · garlic chile · avocado</div></div>
+      <div class="dish"><div class="nm">Foie Gras</div><div class="pr">$27</div><div class="ds">brioche · huckleberry · balsamic meringue</div></div>
+      <div class="dish"><div class="nm">Lobster Steam Buns</div><div class="pr">$30</div><div class="ds">hollandaise · green onion</div></div>
+    </div>
+
+    <!-- ENTREES -->
+    <div class="menu-cat reveal" data-cat="ent">
+      <h3>Entrées</h3>
+      <div class="dish"><div class="nm">Duck Leg</div><div class="pr">$37</div><div class="ds">kimchi brussels sprouts · green apple · toasted sesame seeds · yuzu mint emulsion</div></div>
+      <div class="dish"><div class="nm">Pumpkin Raviolis</div><div class="pr">$39</div><div class="ds">black garlic &amp; mushroom emulsion · toasted pumpkin seeds · parmesan foam · parmesan reggiano</div></div>
+      <div class="dish"><div class="nm">Diver Scallops</div><div class="pr">$48</div><div class="ds">parsnip puree · roasted baby carrots · brown butter crumble · pedro ximenez "caviar"</div></div>
+      <div class="dish"><div class="nm">Whole Branzino</div><div class="pr">$50</div><div class="ds">roasted broccolini · szechuan peppercorn sauce · herb salad</div></div>
+      <div class="dish"><div class="nm">Filet Mignon</div><div class="pr">$55</div><div class="ds">potato au gratin · sauce meuniere · green peppercorn · hydrocress</div></div>
+    </div>
+
+    <!-- LUXURY TOPPINGS -->
+    <div class="menu-cat reveal" data-cat="lux">
+      <h3>Luxury Toppings</h3>
+      <div class="dish"><div class="nm">Scallop</div><div class="pr">$12</div></div>
+      <div class="dish"><div class="nm">Foie Gras</div><div class="pr">$25</div></div>
+      <div class="dish"><div class="nm">Chanterelle Mushrooms</div><div class="pr">$25</div></div>
+      <div class="dish"><div class="nm">Lobster</div><div class="pr">$35</div></div>
+    </div>
+
+    <!-- DESSERTS -->
+    <div class="menu-cat reveal" data-cat="des">
+      <h3>Desserts</h3>
+      <div class="dish"><div class="nm">Dimock Butter Cake</div><div class="pr">$12</div><div class="ds">popcorn ice cream · caramel · maldon salt</div></div>
+      <div class="dish"><div class="nm">Chocolate Panna Cotta</div><div class="pr">$12</div><div class="ds">lingonberries · whipped cream · brown butter crumble</div></div>
+    </div>
+
+    <!-- KIDS -->
+    <div class="menu-cat reveal" data-cat="kid">
+      <h3>Kids</h3>
+      <div class="dish"><div class="nm">Kids Filet</div><div class="pr">$20</div><div class="ds">french fries or apple</div></div>
+      <div class="dish"><div class="nm">Pumpkin Raviolis</div><div class="pr">$15</div><div class="ds">parmesan · butter · french fries or apple</div></div>
+    </div>
+
+    <!-- BEVERAGE / CELLAR -->
+    <div class="menu-cat reveal" data-cat="bev">
+      <h3>Wine, Beer &amp; Cellar</h3>
+
+      <details class="cellar"><summary>Bubbles <span class="plus">+</span></summary><div class="cellar-body">
+        <div class="dish glass"><div class="nm">Champagne, André Jacquart, Premier Cru, Extra Brut, France NV</div><div class="pr2"></div><div class="pr">$95</div></div>
+        <div class="dish glass"><div class="nm">Prosecco, Bellafina, Italy NV</div><div class="pr2">gl $9</div><div class="pr">btl $24</div></div>
+        <div class="dish glass"><div class="nm">Prosecco, Pizzolato, Italy NV — split</div><div class="pr2"></div><div class="pr">$10</div></div>
+        <div class="dish glass"><div class="nm">Sparkling, Avive, White Peach, France NV</div><div class="pr2">gl $10</div><div class="pr">btl $30</div></div>
+        <div class="dish glass"><div class="nm">Sparkling, Graham Beck, Brut Rosé, South Africa NV</div><div class="pr2"></div><div class="pr">$31</div></div>
+        <div class="dish glass"><div class="nm">Sparkling, Belle Joli, Brut Rosé, Sturgis NV</div><div class="pr2">gl $20</div><div class="pr">btl $60</div></div>
+        <div class="dish glass"><div class="nm">Sparkling Sake, Awa Yuki, Hakutsuru, Japan — 300ml</div><div class="pr2"></div><div class="pr">$20</div></div>
+      </div></details>
+
+      <details class="cellar"><summary>White <span class="plus">+</span></summary><div class="cellar-body">
+        <div class="dish glass"><div class="nm">Chardonnay, Substance, Columbia Valley 2020</div><div class="pr2">gl $14.50</div><div class="pr">btl $40</div></div>
+        <div class="dish glass"><div class="nm">Chardonnay, Saintsbury, Carneros 2021</div><div class="pr2"></div><div class="pr">$50</div></div>
+        <div class="dish glass"><div class="nm">Chardonnay, Salus · Staglin Family, Napa Valley 2021</div><div class="pr2"></div><div class="pr">$60</div></div>
+        <div class="dish glass"><div class="nm">Chardonnay, Rombauer Vineyards, Carneros 2021</div><div class="pr2"></div><div class="pr">$75</div></div>
+        <div class="dish glass"><div class="nm">Chardonnay, Gran Moraine, Willamette Valley 2018</div><div class="pr2"></div><div class="pr">$85</div></div>
+        <div class="dish glass"><div class="nm">Chardonnay, Albert Bichot, Chablis Premier Cru, France 2020</div><div class="pr2"></div><div class="pr">$90</div></div>
+        <div class="dish glass"><div class="nm">Chardonnay, Chappellet, Petaluma Gap 2018</div><div class="pr2"></div><div class="pr">$92</div></div>
+        <div class="dish glass"><div class="nm">Chenin Blanc, Arendsig, Batch 3, South Africa 2021</div><div class="pr2"></div><div class="pr">$42</div></div>
+        <div class="dish glass"><div class="nm">Gewürztraminer, Alexander Valley, California 2022</div><div class="pr2">gl $10</div><div class="pr">btl $30</div></div>
+        <div class="dish glass"><div class="nm">Gravier Blanc, Firehouse Wine Cellars, Rapid City NV</div><div class="pr2"></div><div class="pr">$60</div></div>
+        <div class="dish glass"><div class="nm">Picpoul de Pinet, Domaine Delsol, France 2022</div><div class="pr2">gl $8</div><div class="pr">btl $23</div></div>
+        <div class="dish glass"><div class="nm">Pinot Grigio, Guinigi, Italy 2021</div><div class="pr2">gl $9</div><div class="pr">btl $24</div></div>
+        <div class="dish glass"><div class="nm">Pinot Gris, Maysara "Arsheen", Oregon 2022</div><div class="pr2"></div><div class="pr">$34</div></div>
+        <div class="dish glass"><div class="nm">Riesling Spätlese, Gustav Schmitt, Germany 2021</div><div class="pr2">gl $10</div><div class="pr">btl $30</div></div>
+        <div class="dish glass"><div class="nm">Rosé, Mateus, Dry Rosé, Portugal 2022</div><div class="pr2">gl $12</div><div class="pr">btl $36</div></div>
+        <div class="dish glass"><div class="nm">Rosé, Pure Mirabeau, Côtes de Provence 2022</div><div class="pr2"></div><div class="pr">$51</div></div>
+        <div class="dish glass"><div class="nm">Rosé, Metaphora, Rosé of Cabernet, Napa Valley 2018</div><div class="pr2"></div><div class="pr">$86</div></div>
+        <div class="dish glass"><div class="nm">Sauvignon Blanc, Prisma, Casablanca Valley, Chile 2023</div><div class="pr2">gl $10.50</div><div class="pr">btl $32</div></div>
+        <div class="dish glass"><div class="nm">Sauvignon Blanc, Le Blanc de Greysac, France 2021</div><div class="pr2"></div><div class="pr">$45</div></div>
+        <div class="dish glass"><div class="nm">Sauvignon Blanc, Metaphora, Napa Valley 2016</div><div class="pr2"></div><div class="pr">$60</div></div>
+        <div class="dish glass"><div class="nm">Sauvignon Blanc, Cadre "Stone Blossom", Edna Valley 2021</div><div class="pr2"></div><div class="pr">$80</div></div>
+        <div class="dish glass"><div class="nm">White Pinot Noir, Lucent, Willamette Valley 2021</div><div class="pr2"></div><div class="pr">$40</div></div>
+      </div></details>
+
+      <details class="cellar"><summary>Red <span class="plus">+</span></summary><div class="cellar-body">
+        <div class="dish glass"><div class="nm">Amarone, Tommasi, Valpolicella Classico, Italy 2017</div><div class="pr2"></div><div class="pr">$120</div></div>
+        <div class="dish glass"><div class="nm">Bordeaux, Domaine de l'A, Castillon, France 2015</div><div class="pr2"></div><div class="pr">$130</div></div>
+        <div class="dish glass"><div class="nm">Brunello di Montalcino, Cinelli Colombini, Italy 2018</div><div class="pr2"></div><div class="pr">$90</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Portillo, Salentein, Argentina 2021</div><div class="pr2">gl $8</div><div class="pr">btl $23</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Uncaged, Z. Alexander Brown, California 2020</div><div class="pr2">gl $12</div><div class="pr">btl $36</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Quilt, Napa Valley 2021</div><div class="pr2">gl $18</div><div class="pr">btl $50</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Bound + Determined, Napa Valley 2019</div><div class="pr2"></div><div class="pr">$70</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Barkan Platinum, Galilee, Israel 2018</div><div class="pr2"></div><div class="pr">$85</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Paradigm, Oakville, Napa Valley 2019</div><div class="pr2"></div><div class="pr">$121</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Keenan, Napa Valley 2018</div><div class="pr2"></div><div class="pr">$132</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Salus · Staglin Family Estate, Napa Valley 2018</div><div class="pr2"></div><div class="pr">$160</div></div>
+        <div class="dish glass"><div class="nm">Cabernet Franc, Lang &amp; Reed, California 2021</div><div class="pr2"></div><div class="pr">$58</div></div>
+        <div class="dish glass"><div class="nm">Cabernet Franc, Metaphora, Sierra Foothills 2013</div><div class="pr2"></div><div class="pr">$120</div></div>
+        <div class="dish glass"><div class="nm">Châteauneuf-du-Pape, Domaine de l'Arnesque, France 2020</div><div class="pr2"></div><div class="pr">$80</div></div>
+        <div class="dish glass"><div class="nm">Chianti Classico, Villa Calcinaia, Italy 2020</div><div class="pr2">gl $15</div><div class="pr">btl $40</div></div>
+        <div class="dish glass"><div class="nm">Chianti Classico, Carpineto Riserva, Italy 2017</div><div class="pr2"></div><div class="pr">$58</div></div>
+        <div class="dish glass"><div class="nm">Côtes du Rhône, Domaine de Chateaumar, France 2021</div><div class="pr2">gl $13.50</div><div class="pr">btl $39</div></div>
+        <div class="dish glass"><div class="nm">Malbec, Mas des Étoiles "Petite Étoile", France 2018</div><div class="pr2">gl $12</div><div class="pr">btl $36</div></div>
+        <div class="dish glass"><div class="nm">Merlot, Goldschmidt "Chelsea", Alexander Valley 2021</div><div class="pr2">gl $13.50</div><div class="pr">btl $39</div></div>
+        <div class="dish glass"><div class="nm">Merlot, Frog's Leap, Rutherford, Napa Valley 2020</div><div class="pr2"></div><div class="pr">$69</div></div>
+        <div class="dish glass"><div class="nm">Nebbiolo, Travaglini, Gattinara, Italy 2019</div><div class="pr2"></div><div class="pr">$87</div></div>
+        <div class="dish glass"><div class="nm">Petite Sirah, Summit Lake, Howell Mountain 2018</div><div class="pr2"></div><div class="pr">$88</div></div>
+        <div class="dish glass"><div class="nm">Pinot Noir, Dipinti, Trentino, Italy 2021</div><div class="pr2">gl $11</div><div class="pr">btl $34</div></div>
+        <div class="dish glass"><div class="nm">Pinot Noir, Maysara "Cyrus", Oregon 2014</div><div class="pr2"></div><div class="pr">$60</div></div>
+        <div class="dish glass"><div class="nm">Pinot Noir, Cristom, Mt. Jefferson Cuvée, Willamette 2021</div><div class="pr2"></div><div class="pr">$65</div></div>
+        <div class="dish glass"><div class="nm">Pinot Noir, Baldacci "Elizabeth", Carneros 2021</div><div class="pr2"></div><div class="pr">$98</div></div>
+        <div class="dish glass"><div class="nm">Pinot Noir, Metaphora, Carneros 2011</div><div class="pr2"></div><div class="pr">$135</div></div>
+        <div class="dish glass"><div class="nm">Priorat, Bodegas La Cartuja, Spain 2018</div><div class="pr2">gl $15.75</div><div class="pr">btl $42</div></div>
+        <div class="dish glass"><div class="nm">Red Blend, Pessimist by Daou, Paso Robles 2021</div><div class="pr2">gl $13.50</div><div class="pr">btl $39</div></div>
+        <div class="dish glass"><div class="nm">Red Blend, Quest by Austin Hope, Paso Robles 2021</div><div class="pr2"></div><div class="pr">$63</div></div>
+        <div class="dish glass"><div class="nm">Red Blend, Clau de Nell "Violette", France 2016</div><div class="pr2"></div><div class="pr">$80</div></div>
+        <div class="dish glass"><div class="nm">Red Blend, Cyrus, Alexander Valley, Sonoma 2016</div><div class="pr2"></div><div class="pr">$92</div></div>
+        <div class="dish glass"><div class="nm">Red Blend, Summus, Banfi Toscana, Italy 2018</div><div class="pr2"></div><div class="pr">$120</div></div>
+        <div class="dish glass"><div class="nm">Ripasso, Giuseppe Lenardi, Valpolicella, Italy 2018</div><div class="pr2"></div><div class="pr">$60</div></div>
+        <div class="dish glass"><div class="nm">Shiraz, Wakefield, South Australia 2019</div><div class="pr2"></div><div class="pr">$38</div></div>
+        <div class="dish glass"><div class="nm">Syrah, Firehouse Wine Cellars, Rapid City 2019</div><div class="pr2"></div><div class="pr">$50</div></div>
+        <div class="dish glass"><div class="nm">Zinfandel, Omen, Sierra Foothills 2019</div><div class="pr2">gl $18</div><div class="pr">btl $50</div></div>
+        <div class="dish glass"><div class="nm">Zinfandel, Ridge, Three Valleys, Sonoma 2020</div><div class="pr2"></div><div class="pr">$68</div></div>
+        <div class="dish glass"><div class="nm">Zinfandel, Robert Biale "Black Chicken", Napa Valley 2021</div><div class="pr2"></div><div class="pr">$70</div></div>
+      </div></details>
+
+      <details class="cellar"><summary>Reserve List <span class="plus">+</span></summary><div class="cellar-body">
+        <div class="dish glass"><div class="nm">Champagne, Veuve Clicquot "Yellow Label", France NV</div><div class="pr2"></div><div class="pr">$105</div></div>
+        <div class="dish glass"><div class="nm">Champagne, Perrier-Jouët, Belle Époque, France 2012</div><div class="pr2"></div><div class="pr">$290</div></div>
+        <div class="dish glass"><div class="nm">Chardonnay, Staglin Family, Napa Valley 2011</div><div class="pr2"></div><div class="pr">$210</div></div>
+        <div class="dish glass"><div class="nm">Chardonnay, Metaphora, Napa Valley 2016</div><div class="pr2"></div><div class="pr">$120</div></div>
+        <div class="dish glass"><div class="nm">Meursault, Albert Bichot, France 2018</div><div class="pr2"></div><div class="pr">$153</div></div>
+        <div class="dish glass"><div class="nm">White Burgundy, Coffinet-Duvernay, Chassagne-Montrachet 1er Cru 2018</div><div class="pr2"></div><div class="pr">$230</div></div>
+        <div class="dish glass"><div class="nm">White Burgundy, Coffinet-Duvernay, Les Blanchots Dessous 2019</div><div class="pr2"></div><div class="pr">$245</div></div>
+        <div class="dish glass"><div class="nm">White Burgundy, Antonin Guyon, Meursault-Charmes 1er Cru 2018</div><div class="pr2"></div><div class="pr">$305</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Metaphora, Napa Valley 2010</div><div class="pr2"></div><div class="pr">$350</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Silver Oak, Napa Valley 2016 — 1.5L</div><div class="pr2"></div><div class="pr">$450</div></div>
+        <div class="dish glass"><div class="nm">Cabernet, Chappellet, Pritchard Hill, Napa Valley 2019</div><div class="pr2"></div><div class="pr">$550</div></div>
+        <div class="dish glass"><div class="nm">Red Blend, Continuum, Sage Mountain, Napa Valley 2019</div><div class="pr2"></div><div class="pr">$460</div></div>
+        <div class="dish glass"><div class="nm">Syrah, L'Ermite, Ermitage, M. Chapoutier, France 2014</div><div class="pr2"></div><div class="pr">$622</div></div>
+      </div></details>
+
+      <details class="cellar"><summary>Local &amp; Draft Beer <span class="plus">+</span></summary><div class="cellar-body">
+        <p class="muted" style="font-size:.85rem;margin-bottom:14px">Ask your server for the seasonal selections.</p>
+        <div class="dish glass"><div class="nm">Samuel Smith Oatmeal Stout · England 5%</div><div class="pr2"></div><div class="pr">$5.50</div></div>
+        <div class="dish glass"><div class="nm">Samuel Smith Nut Brown Ale · England 5%</div><div class="pr2"></div><div class="pr">$5</div></div>
+        <div class="dish glass"><div class="nm">Oskar Blues Dale's Pale Ale · Colorado 6.5%</div><div class="pr2"></div><div class="pr">$4</div></div>
+        <div class="dish glass"><div class="nm">Wasatch Apricot Hefeweizen · Utah 4%</div><div class="pr2"></div><div class="pr">$4.50</div></div>
+        <div class="dish glass"><div class="nm">Menabrea Amber · Italy 4.8%</div><div class="pr2"></div><div class="pr">$5</div></div>
+        <div class="dish glass"><div class="nm">Canyon Cream Ale · South Dakota 5%</div><div class="pr2"></div><div class="pr">$5</div></div>
+        <div class="dish glass"><div class="nm">Golden Road Mango Cart N/A · California 0.05%</div><div class="pr2"></div><div class="pr">$5</div></div>
+        <div class="dish glass"><div class="nm">Guinness Zero N/A · Dublin 0%</div><div class="pr2"></div><div class="pr">$5.50</div></div>
+        <div class="dish glass"><div class="nm">Dos Equis Golden Lager · Mexico 4.2%</div><div class="pr2"></div><div class="pr">$6</div></div>
+        <div class="dish glass"><div class="nm">Hoegaarden Wheat Beer · Belgium 4.9%</div><div class="pr2"></div><div class="pr">$6</div></div>
+        <div class="dish glass"><div class="nm">Angry Orchard Cider · New York 5% · gluten-free</div><div class="pr2"></div><div class="pr">$5</div></div>
+        <div class="dish glass"><div class="nm">Ten Towers Cider, Gravitas · Oregon 6% · gluten-free</div><div class="pr2"></div><div class="pr">$10</div></div>
+      </div></details>
+
+      <details class="cellar"><summary>Reserve Beer List <span class="plus">+</span></summary><div class="cellar-body">
+        <div class="dish glass"><div class="nm">Lindemans Framboise, Raspberry · Belgium 2.5%</div><div class="pr2"></div><div class="pr">$18</div></div>
+        <div class="dish glass"><div class="nm">Rochefort Trappist Ale · Belgium 11.3%</div><div class="pr2"></div><div class="pr">$15</div></div>
+        <div class="dish glass"><div class="nm">Orval Trappist Ale · Belgium 6.3%</div><div class="pr2"></div><div class="pr">$12.50</div></div>
+        <div class="dish glass"><div class="nm">Chimay Grande Réserve Dark Ale · Belgium 9%</div><div class="pr2"></div><div class="pr">$10</div></div>
+        <div class="dish glass"><div class="nm">Ayinger Bräu Weisse · Germany 5.1%</div><div class="pr2"></div><div class="pr">$10</div></div>
+        <div class="dish glass"><div class="nm">Erdinger Kristall Hefe-Weizen · Germany 5.3%</div><div class="pr2"></div><div class="pr">$10</div></div>
+      </div></details>
+
+      <p class="legend">★ Certified Sustainable · ★★ Certified Organic · ★★★ Certified Biodynamic · ★★★★ Kosher Certified · Sustainably &amp; biologically farmed selections available. Pricing and availability subject to seasonal change.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FEATURED ===================== -->
+<section class="featured pad">
+  <div class="wrap">
+    <div class="exp-head">
+      <div class="reveal"><span class="eyebrow">Signature Plates</span>
+      <p class="lede" style="margin-top:22px">A few things people drive hours for.</p></div>
+    </div>
+    <div class="feat-grid">
+      <article class="feat-card reveal">
+        <span class="fk">Appetizer · $27</span>
+        <h4>Foie Gras</h4>
+        <p>brioche · huckleberry · balsamic meringue</p>
+      </article>
+      <article class="feat-card reveal d1">
+        <span class="fk">Entrée · $48</span>
+        <h4>Diver Scallops</h4>
+        <p>parsnip puree · roasted baby carrots · brown butter crumble · pedro ximenez "caviar"</p>
+      </article>
+      <article class="feat-card reveal d2">
+        <span class="fk">Dessert · $12</span>
+        <h4>Dimock Butter Cake</h4>
+        <p>popcorn ice cream · caramel · maldon salt</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== GALLERY ===================== -->
+<section class="gallery pad" id="gallery">
+  <div class="wrap">
+    <div class="exp-head">
+      <div class="reveal"><span class="eyebrow" style="color:var(--gold-2)">Inside Skogen</span>
+      <p class="lede" style="margin-top:22px;color:var(--paper-2)">The room, the counter, the hills outside.</p></div>
+      <p class="reveal d1" style="color:rgba(244,238,225,.65);max-width:32ch">Intimate, warm, and a little wild — a dining room that feels like the forest it's named for.</p>
+    </div>
+    <div class="gal-grid">
+      <figure class="gal g1 reveal">
+        <img loading="lazy" alt="Skogen Kitchen, Custer, South Dakota"
+          src="https://images.squarespace-cdn.com/content/v1/64094b859bda7e5d350d2e7b/c50e3db1-154b-4620-814b-e8c6ac253f79/IMG_8575.jpg?format=1500w" />
+        <span class="gcap">An evening at Skogen</span>
+      </figure>
+      <figure class="gal g2 reveal d1">
+        <img loading="lazy" alt="Inside Skogen Kitchen"
+          src="https://images.squarespace-cdn.com/content/v1/64094b859bda7e5d350d2e7b/35a2fbf6-45b3-493a-8897-a70c940f1fa7/IMG_7806.jpg?format=1200w" />
+        <span class="gcap">Inside the room</span>
+      </figure>
+      <figure class="gal g3 reveal d1">
+        <img loading="lazy" alt="Skogen Kitchen, Custer SD"
+          src="https://images.squarespace-cdn.com/content/v1/64094b859bda7e5d350d2e7b/f3a6aa83-beeb-4a97-a4f9-6e2d375a2ab2/Screenshot+2023-03-12+at+1.03.11+PM.jpg?format=1200w" />
+        <span class="gcap">From the kitchen</span>
+      </figure>
+      <figure class="gal g4 reveal d2">
+        <img loading="lazy" alt="Skogen Kitchen, in the Black Hills"
+          src="https://images.squarespace-cdn.com/content/v1/64094b859bda7e5d350d2e7b/fbc8c4c2-4886-45cc-951a-f7b8e228343e/0AF3FE75-E468-49F8-8F67-AFAE1ABEC3E6.JPG?format=1500w" />
+        <span class="gcap">In the Black Hills</span>
+      </figure>
+    </div>
+    <p style="text-align:center;margin-top:30px;font-size:.78rem;letter-spacing:.04em;color:rgba(244,238,225,.5)">Photography courtesy of Skogen Kitchen.</p>
+  </div>
+</section>
+
+<!-- ===================== RESERVATION ===================== -->
+<section class="reserve pad" id="reserve">
+  <div class="wrap res-grid">
+    <div class="res-card reveal">
+      <span class="eyebrow">Reservations</span>
+      <h3 style="margin-top:16px">Join us for dinner.</h3>
+      <p style="color:rgba(244,238,225,.7);font-size:.92rem;margin-top:6px">Seating is limited and books quickly — we recommend reserving ahead.</p>
+      <div class="two">
+        <div class="field"><label>Name</label><input id="rName" type="text" placeholder="Your name" /></div>
+        <div class="field"><label>Guests</label>
+          <select id="rGuests"><option>2 guests</option><option>1 guest</option><option>3 guests</option><option>4 guests</option><option>5 guests</option><option>6+ guests</option></select>
+        </div>
+      </div>
+      <div class="two">
+        <div class="field"><label>Date</label><input id="rDate" type="date" /></div>
+        <div class="field"><label>Time</label>
+          <select id="rTime"><option>5:00 PM</option><option>5:30 PM</option><option>6:00 PM</option><option>6:30 PM</option><option>7:00 PM</option><option>7:30 PM</option><option>8:00 PM</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Phone or email</label><input id="rContact" type="text" placeholder="Best way to reach you" /></div>
+      <button class="btn" style="--bg:var(--gold);--fg:var(--ink);margin-top:28px;width:100%;justify-content:center" id="rSubmit"><span>Request reservation</span></button>
+      <p class="res-msg" id="rMsg"></p>
+      <a href="https://resy.com/cities/custer-sd/venues/skogen-kitchen" target="_blank" rel="noopener"
+         style="display:block;text-align:center;margin-top:14px;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-2)">Or book instantly on Resy →</a>
+    </div>
+
+    <div class="res-info reveal d1">
+      <div class="block">
+        <h4>Hours</h4>
+        <p>Dinner · Tuesday – Saturday<br/>5:00 – 8:30 PM<br/>Closed Sunday &amp; Monday</p>
+      </div>
+      <div class="block">
+        <h4>Reserve by phone</h4>
+        <p>Prefer to talk? Call us directly.<br/><a href="tel:+16056732241">(605) 673-2241</a></p>
+      </div>
+      <div class="block">
+        <h4>Private &amp; large parties</h4>
+        <p>Email ahead for groups and we'll happily arrange specific wines or beers for your table.<br/><a href="mailto:skogen@skogenkitchen.com">skogen@skogenkitchen.com</a></p>
+      </div>
+      <div class="block" style="border-bottom:0">
+        <h4>Good to know</h4>
+        <p>$2 split-plate fee · $20 corkage per bottle of wine · Vegan options available · The best seats in the house are at the chef's counter.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== LOCATION ===================== -->
+<section class="location pad" id="location">
+  <div class="wrap loc-grid">
+    <div class="reveal">
+      <span class="eyebrow">Find Us</span>
+      <h2 style="font-size:clamp(2rem,4.4vw,3.2rem);font-weight:300;margin:18px 0 22px">29 N 5th Street,<br/>Custer, South Dakota</h2>
+      <p class="muted" style="max-width:42ch">In the heart of downtown Custer, a short drive from Custer State Park and the wider Black Hills. Street parking is available along 5th Street and nearby lots.</p>
+      <div style="display:flex;gap:14px;margin-top:30px;flex-wrap:wrap">
+        <a class="btn ghost" href="https://www.google.com/maps/dir//skogen+kitchen+custer+sd" target="_blank" rel="noopener"><span>Get directions</span></a>
+        <a class="btn ghost" href="tel:+16056732241"><span>(605) 673-2241</span></a>
+      </div>
+    </div>
+    <div class="map-frame reveal d1">
+      <iframe title="Map to Skogen Kitchen" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+        src="https://maps.google.com/maps?q=29%20N%205th%20St%20Custer%20SD%2057730&t=&z=15&ie=UTF8&iwloc=&output=embed"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== REVIEWS ===================== -->
+<section class="reviews pad">
+  <div class="wrap">
+    <div class="exp-head">
+      <div class="reveal"><span class="eyebrow">Guest Words</span>
+      <p class="lede" style="margin-top:22px">From a small town to a big reputation.</p></div>
+    </div>
+    <!-- Genuine guest sentiment, paraphrased. Wire this slider to live Google / Tripadvisor reviews. -->
+    <div class="rev-track">
+      <div class="rev reveal"><div class="stars">★★★★★</div><p>Not just the best restaurant in Custer — a place that would hold its own in any big city.</p><cite>— Tripadvisor guest</cite></div>
+      <div class="rev reveal d1"><div class="stars">★★★★★</div><p>Some of the freshest seafood in the Black Hills, and the kindest people you'll meet.</p><cite>— Returning local</cite></div>
+      <div class="rev reveal d2"><div class="stars">★★★★★</div><p>A refined, creative dinner after a day in the hills — lobster buns and short ribs that stay with you.</p><cite>— Gloria H., Jan 2026</cite></div>
+      <div class="rev reveal d3"><div class="stars">★★★★★</div><p>Sixteen of us dined together — incredible service, food, and sixteen lifetime memories.</p><cite>— Visiting group</cite></div>
+    </div>
+    <p style="margin-top:20px;font-size:.78rem;color:var(--ink-soft)">Sentiment drawn from public reviews · connect the slider to the live Google &amp; Tripadvisor feed.</p>
+  </div>
+</section>
+
+<!-- ===================== FINAL CTA ===================== -->
+<section class="final pad">
+  <div class="grain"></div>
+  <div class="final-inner reveal">
+    <span class="eyebrow" style="color:var(--gold-2)">Reserve Your Table</span>
+    <h2>Experience <em>Skogen</em> Kitchen.</h2>
+    <a href="#reserve" class="btn" style="--bg:var(--gold);--fg:var(--ink)"><span>Reserve a table</span></a>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap foot">
+    <div>
+      <div class="brand"><b>Skogen</b> Kitchen</div>
+      <p>A chef-driven restaurant bringing flavors from around the world to Custer, South Dakota — where the Black Hills meet the table.</p>
+    </div>
+    <div>
+      <h5>Hours</h5>
+      <ul>
+        <li>Tue – Sat · 5:00–8:30 PM</li>
+        <li>Sunday · Closed</li>
+        <li>Monday · Closed</li>
+      </ul>
+    </div>
+    <div>
+      <h5>Explore</h5>
+      <ul>
+        <li><a href="#philosophy">Our Story</a></li>
+        <li><a href="#menu">Menu</a></li>
+        <li><a href="#gallery">Gallery</a></li>
+        <li><a href="#reserve">Reservations</a></li>
+        <li><a href="#location">Visit</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Stay in touch</h5>
+      <ul>
+        <li>29 N 5th Street, Custer, SD 57730</li>
+        <li><a href="tel:+16056732241">(605) 673-2241</a></li>
+        <li><a href="mailto:skogen@skogenkitchen.com">skogen@skogenkitchen.com</a></li>
+        <li><a href="https://www.instagram.com/skogenkitchen/" target="_blank" rel="noopener">Instagram</a> · <a href="https://www.facebook.com/skogenkitchen/" target="_blank" rel="noopener">Facebook</a></li>
+      </ul>
+      <div class="news">
+        <input id="news" type="email" placeholder="Email for seasonal news" />
+        <button id="newsBtn">Join</button>
+      </div>
+      <p class="news-msg" id="newsMsg"></p>
+    </div>
+  </div>
+  <div class="wrap foot-base">
+    <span>© <span id="yr"></span> Skogen Kitchen. All rights reserved.</span>
+    <span><a href="#">Privacy Policy</a> · <a href="#">Accessibility</a> · Concept redesign</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* loader */
+  window.addEventListener("load", function(){
+    setTimeout(function(){ document.getElementById("loader").classList.add("done"); }, 1700);
+  });
+
+  /* nav scrolled + trail fill */
+  var header = document.getElementById("header");
+  var trail = document.getElementById("trailFill");
+  function onScroll(){
+    if(window.scrollY > 40) header.classList.add("scrolled"); else header.classList.remove("scrolled");
+    var h = document.documentElement;
+    var p = h.scrollTop / (h.scrollHeight - h.clientHeight);
+    if(trail) trail.style.height = (p*100) + "%";
+  }
+  window.addEventListener("scroll", onScroll, {passive:true}); onScroll();
+
+  /* mobile drawer */
+  var drawer = document.getElementById("drawer");
+  document.getElementById("burger").addEventListener("click", function(){ drawer.classList.add("open"); document.body.classList.add("locked"); });
+  document.getElementById("closeDrawer").addEventListener("click", closeDrawer);
+  drawer.querySelectorAll("a").forEach(function(a){ a.addEventListener("click", closeDrawer); });
+  function closeDrawer(){ drawer.classList.remove("open"); document.body.classList.remove("locked"); }
+
+  /* reveal on scroll */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+  }, {threshold:0.12, rootMargin:"0px 0px -8% 0px"});
+  document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
+
+  /* menu filter */
+  var fbtns = document.querySelectorAll(".filters button");
+  var cats = document.querySelectorAll(".menu-cat");
+  fbtns.forEach(function(b){
+    b.addEventListener("click", function(){
+      fbtns.forEach(function(x){ x.classList.remove("active"); });
+      b.classList.add("active");
+      var f = b.dataset.f;
+      cats.forEach(function(c){
+        var show = (f === "all" || c.dataset.cat === f);
+        c.style.display = show ? "" : "none";
+      });
+    });
+  });
+
+  /* reservation request -> opens prefilled email (no backend in demo) */
+  document.getElementById("rSubmit").addEventListener("click", function(){
+    var name = (document.getElementById("rName").value||"").trim();
+    var contact = (document.getElementById("rContact").value||"").trim();
+    var guests = document.getElementById("rGuests").value;
+    var date = document.getElementById("rDate").value;
+    var time = document.getElementById("rTime").value;
+    var msg = document.getElementById("rMsg");
+    if(!name || !contact){ msg.textContent = "Please add your name and a way to reach you."; return; }
+    var subject = encodeURIComponent("Reservation request — " + name);
+    var body = encodeURIComponent("Name: "+name+"\nGuests: "+guests+"\nDate: "+(date||"(flexible)")+"\nTime: "+time+"\nContact: "+contact+"\n\nSent from skogenkitchen.com");
+    msg.textContent = "Opening your email to confirm with the restaurant…";
+    window.location.href = "mailto:skogen@skogenkitchen.com?subject="+subject+"&body="+body;
+  });
+
+  /* newsletter (demo) */
+  document.getElementById("newsBtn").addEventListener("click", function(){
+    var v = (document.getElementById("news").value||"").trim();
+    var m = document.getElementById("newsMsg");
+    if(v && v.indexOf("@")>0){ m.textContent = "Thank you — we'll be in touch with seasonal news."; document.getElementById("news").value=""; }
+    else { m.textContent = "Please enter a valid email."; }
+  });
+
+  document.getElementById("yr").textContent = new Date().getFullYear();
+
+  /* hero particles — soft drifting embers/pollen */
+  if(!reduce){
+    var c = document.getElementById("particles"); var ctx = c.getContext("2d");
+    var W,H,parts;
+    function resize(){ W=c.width=c.offsetWidth; H=c.height=c.offsetHeight;
+      parts = Array.from({length: Math.min(60, Math.floor(W/22))}, function(){
+        return {x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.8+0.4,
+                vx:(Math.random()-0.5)*0.25, vy:-(Math.random()*0.4+0.1), a:Math.random()*0.5+0.2};
+      });
+    }
+    function tick(){
+      ctx.clearRect(0,0,W,H);
+      parts.forEach(function(p){
+        p.x+=p.vx; p.y+=p.vy;
+        if(p.y < -5){ p.y = H+5; p.x = Math.random()*W; }
+        if(p.x < -5) p.x = W+5; if(p.x > W+5) p.x = -5;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.28);
+        ctx.fillStyle = "rgba(216,188,132," + p.a + ")"; ctx.fill();
+      });
+      requestAnimationFrame(tick);
+    }
+    resize(); tick(); window.addEventListener("resize", resize);
+  }
+})();
+</script>
